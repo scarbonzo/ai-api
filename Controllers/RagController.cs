@@ -14,8 +14,14 @@ namespace ai_api.Controllers
             _httpClient.Timeout = TimeSpan.FromMinutes(10);
         }
 
-        [HttpPost]
-        public async Task<IActionResult> ProcessInput([FromBody] QueryRequest request)
+        [HttpGet]
+        public IActionResult Get()
+        {
+            return Ok("sup.");
+        }
+
+        [HttpPost("url")]
+        public async Task<IActionResult> RagQuery([FromBody] QueryRequest request)
         {
             try
             {
@@ -29,6 +35,25 @@ namespace ai_api.Controllers
 
                 // Return the response
                 return Ok(new { Response = response, Context = context });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Error = ex.Message });
+            }
+        }
+
+        [HttpPost("text")]
+        public async Task<IActionResult> BasicQuery([FromBody] QueryRequest request)
+        {
+            try
+            {
+                _httpClient.BaseAddress = new Uri(request.Server);
+                
+                var prompt = $"Query: {request.Query}\n\nAnswer:";
+                var response = await GenerateResponse(prompt, request.Model, request.Tokens, request.Stream);
+
+                // Return the response
+                return Ok(new { Response = response });
             }
             catch (Exception ex)
             {
@@ -57,7 +82,7 @@ namespace ai_api.Controllers
     {
         public string Server { get; set; } = "http://localhost:11434/api/";
         public string Query { get; set; }
-        public string Url { get; set; }
+        public string Url { get; set; } = "";
         public string Model { get; set; }
         public int Tokens { get; set; } = 8196;
         public bool Stream { get; set; } = false;
